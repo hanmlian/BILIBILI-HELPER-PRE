@@ -5,12 +5,15 @@ import com.google.gson.JsonSyntaxException;
 import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import top.misec.config.Cookie;
 import top.misec.org.slf4j.impl.StaticLoggerBinder;
 import top.misec.config.Config;
 import top.misec.login.ServerVerify;
 import top.misec.login.Verify;
 import top.misec.task.DailyTask;
 import top.misec.task.ServerPush;
+import top.misec.utils.LoadFileResource;
+import top.misec.utils.Util;
 import top.misec.utils.VersionInfo;
 
 import java.io.IOException;
@@ -42,22 +45,38 @@ public class BiliMain {
 
     public static void main(String[] args) {
 
-        if (args.length < 3) {
+        String cookieJson = LoadFileResource.loadCookieJsonFromFile();
+        Cookie cookie = null;
+        if (cookieJson != null) {
+            log.info("读取外部配置文件成功");
+            cookie = new Gson().fromJson(cookieJson, Cookie.class);
+        }
+
+        if (Util.checkNull(cookie) && args.length < 3) {
             log.info("任务启动失败");
-            log.warn("Cookies参数缺失，请检查是否在Github Secrets中配置Cookies参数");
+            log.warn("Cookies参数缺失，请检查是否配置Cookies参数");
             return;
         }
-        //读取环境变量
-        Verify.verifyInit(args[0], args[1], args[2]);
 
-        if (args.length > 4) {
-            ServerVerify.verifyInit(args[3], args[4]);
-        } else if (args.length > 3) {
-            ServerVerify.verifyInit(args[3]);
+        if (Util.checkNull(cookie)) {
+            cookie = new Cookie();
+            cookie.setUserId(args[0]);
+            cookie.setSessData(args[1]);
+            cookie.setBiliJct(args[2]);
+            if (args.length > 4) {
+                cookie.setFT_KEY(args[3]);
+                cookie.setCHAT_ID(args[4]);
+            } else if (args.length > 3) {
+                cookie.setFT_KEY(args[3]);
+            }
         }
 
+        //读取环境变量
+        Verify.verifyInit(cookie.getUserId(), cookie.getSessData(), cookie.getBiliJct());
+        ServerVerify.verifyInit(cookie.getFT_KEY(), cookie.getCHAT_ID());
 
         VersionInfo.printVersionInfo();
+
         //每日任务65经验
         Config.getInstance().configInit();
         if (!Boolean.TRUE.equals(Config.getInstance().getSkipDailyTask())) {

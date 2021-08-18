@@ -20,9 +20,23 @@ public class LoadFileResource {
      * @return config
      */
     public static String loadConfigJsonFromFile() {
+        return loadJsonFromFile("config.json");
+    }
+
+    /**
+     * 从外部资源读取cookie等参数
+     * 原因是之前使用cron启动时，参数太长，从而自动并不成功
+     * 为什么会导致上述现象没有仔细去查证，所以从软件层面使传入的参数变短
+     * @return cookie
+     */
+    public static String loadCookieJsonFromFile() {
+        return loadJsonFromFile("cookie.json");
+    }
+
+    public static String loadJsonFromFile(String fileName) {
         String config = null;
         try {
-            String outPath = System.getProperty("user.dir") + File.separator + "config.json"  ;
+            String outPath = System.getProperty("user.dir") + File.separator + fileName;
             InputStream is = new FileInputStream(outPath);
             int size = is.available();
             byte[] buffer = new byte[size];
@@ -30,7 +44,7 @@ public class LoadFileResource {
             is.close();
             config = new String(buffer, StandardCharsets.UTF_8);
         } catch (FileNotFoundException e) {
-            log.info("未扫描到外部配置文件，即将加载默认配置文件【此提示仅针自行部署的Linux用户，普通用户请忽略】");
+            log.info("未扫描到外部配置文件，即将加载默认配置文件");
         } catch (IOException e) {
             e.printStackTrace();
             log.debug("", e);
